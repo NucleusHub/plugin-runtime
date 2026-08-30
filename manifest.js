@@ -124,21 +124,45 @@ export function validateManifest(raw) {
   }
 
   // extensions — optional. What a plugin contributes to host extension points.
-  // The only point defined so far is `adminTabs` (see extensions.js); validation
-  // is intentionally shallow — the host resolves/loads the actual components.
+  // Validation is intentionally shallow — the host resolves and loads the actual
+  // components; this only catches a manifest typo early enough that it shows up
+  // in the Admin UI rather than as a section that silently never renders.
   if (m.extensions !== undefined) {
     if (!isPlainObject(m.extensions)) {
       errors.push('`extensions` must be an object')
-    } else if (m.extensions.adminTabs !== undefined) {
-      const tabs = m.extensions.adminTabs
-      if (!Array.isArray(tabs)) {
-        errors.push('`extensions.adminTabs` must be an array')
-      } else {
-        tabs.forEach((t, i) => {
-          if (!isPlainObject(t) || typeof t.path !== 'string' || typeof t.label !== 'string' || typeof t.component !== 'string') {
-            errors.push(`\`extensions.adminTabs[${i}]\` must be { path, label, component } strings`)
+    } else {
+      if (m.extensions.adminTabs !== undefined) {
+        const tabs = m.extensions.adminTabs
+        if (!Array.isArray(tabs)) {
+          errors.push('`extensions.adminTabs` must be an array')
+        } else {
+          tabs.forEach((t, i) => {
+            if (!isPlainObject(t) || typeof t.path !== 'string' || typeof t.label !== 'string' || typeof t.component !== 'string') {
+              errors.push(`\`extensions.adminTabs[${i}]\` must be { path, label, component } strings`)
+            }
+          })
+        }
+      }
+
+      // A section a plugin contributes to the Watchlist app, which the user
+      // places as a tab or a panel. The component itself is the fixed filename
+      // `client/watchlistSurface.vue`, so it isn't named here.
+      if (m.extensions.watchlistSurface !== undefined) {
+        const surface = m.extensions.watchlistSurface
+        if (!isPlainObject(surface)) {
+          errors.push('`extensions.watchlistSurface` must be an object')
+        } else {
+          for (const key of ['path', 'label', 'defaultPlacement']) {
+            if (surface[key] !== undefined && typeof surface[key] !== 'string') {
+              errors.push(`\`extensions.watchlistSurface.${key}\` must be a string`)
+            }
           }
-        })
+          if (surface.placements !== undefined) {
+            const ok = Array.isArray(surface.placements)
+              && surface.placements.every(p => p === 'tab' || p === 'panel')
+            if (!ok) errors.push('`extensions.watchlistSurface.placements` must be an array of "tab" / "panel"')
+          }
+        }
       }
     }
   }
