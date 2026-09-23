@@ -144,6 +144,16 @@ export function validateManifest(raw) {
         }
       }
 
+      // Where the auth-server mounts the plugin's server/route.js under
+      // /api/auth (core/auth-server/serverPlugins.js): a path, true for /<id>,
+      // or false to opt out. Core plugins default to /<id> without it.
+      if (m.extensions.authRoute !== undefined) {
+        const r = m.extensions.authRoute
+        if (typeof r !== 'boolean' && (typeof r !== 'string' || !r.trim())) {
+          errors.push('`extensions.authRoute` must be a path string or a boolean')
+        }
+      }
+
       // A section a plugin contributes to the Watchlist app, which the user
       // places as a tab or a panel. The component itself is the fixed filename
       // `client/watchlistSurface.vue`, so it isn't named here.
